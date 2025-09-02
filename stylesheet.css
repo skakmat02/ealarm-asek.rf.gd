@@ -1,0 +1,21 @@
+.alerting {
+    color: red;
+    animation: flash 1s infinite;
+}
+
+@keyframes flash {
+    0% { opacity: 1; }
+    50% { opacity: 0.2; }
+    100% { opacity: 1; }
+}
+
+.system-status-icon.alerting {
+  color: red;
+  animation: ealarm-flash 1s infinite;
+}
+
+@keyframes ealarm-flash {
+  0% { opacity: 1; }
+  50% { opacity: 0.2; }
+  100% { opacity: 1; }
+}

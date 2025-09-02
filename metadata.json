@@ -1,0 +1,8 @@
+{
+  "uuid": "ealarm@asek.rf.gd",
+  "name": "Earthquake Alarm",
+  "description": "BMKG Earthquake alarm with notif & sound",
+  "version": 1,
+  "shell-version": ["45", "46"],
+  "url": ""
+}

@@ -5,7 +5,8 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import GLib from 'gi://GLib';
-import Soup from 'gi://Soup?version=3.0';
+import Soup from 'gi://Soup';
+//import Gio from 'gi://Gio';
 
 export default class EAlarmExtension extends Extension {
     enable() {
@@ -33,9 +34,9 @@ export default class EAlarmExtension extends Extension {
         this._indicator.menu.addMenuItem(checkItem);
 
         this._soundList = [
-            'alarm-clock-elapsed',
+            'dialog-warning',
             'bell',
-            'dialog-warning',            
+            'alarm-clock-elapsed',
             'suspend-error',
         ];
         this._currentSound = 0;
@@ -45,16 +46,18 @@ export default class EAlarmExtension extends Extension {
         );
         this._soundItem.connect('activate', () => {
             this._currentSound = (this._currentSound + 1) % this._soundList.length;
-            this._soundItem.label.text = `Change Sound (current: ${this._soundList[this._currentSound]})`;
-            Main.notify('BMKG Earthquake Alarm', `Notification sound set to "${this._soundList[this._currentSound]}"`);
+            this._soundItem.label.text =
+                `Change Sound (current: ${this._soundList[this._currentSound]})`;
+            Main.notify(
+                'Earthquake Alarm',
+                `Notification sound set to "${this._soundList[this._currentSound]}"`
+            );
         });
         this._indicator.menu.addMenuItem(this._soundItem);
 
-        this._indicator.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
-        let aboutItem = new PopupMenu.PopupMenuItem('About BMKG Earthquake Alarm');
+        let aboutItem = new PopupMenu.PopupMenuItem('About Earthquake Alarm');
         aboutItem.connect('activate', () => {
-            Main.notify('BMKG Earthquake Alarm', 'Extension by asek.rf.gd');
+            Main.notify('Earthquake Alarm', 'Extension by asek.rf.gd');
         });
         this._indicator.menu.addMenuItem(aboutItem);
 
@@ -73,7 +76,7 @@ export default class EAlarmExtension extends Extension {
 
         // first run
         this._checkEarthquake();
-        Main.notify('BMKG Earthquake Alarm', 'Monitoring BMKG feed for earthquake alerts.');
+        Main.notify('Earthquake Alarm', 'Monitoring BMKG feed for earthquake alerts.');
     }
 
     disable() {
@@ -100,36 +103,43 @@ export default class EAlarmExtension extends Extension {
             const url = 'https://data.bmkg.go.id/DataMKG/TEWS/autogempa.json';
             let msg = Soup.Message.new('GET', url);
 
-            this._session.send_and_read_async(msg, GLib.PRIORITY_DEFAULT, null, (session, res) => {
-                try {
-                    let bytes = this._session.send_and_read_finish(res);
-                    let jsonStr = new TextDecoder().decode(bytes.get_data());
-                    let data = JSON.parse(jsonStr);
-                    let quake = data.Infogempa?.gempa;
-                    if (!quake) return;
+            this._session.send_and_read_async(
+                msg,
+                GLib.PRIORITY_DEFAULT,
+                null,
+                (session, res) => {
+                    try {
+                        let bytes = this._session.send_and_read_finish(res);
+                        let jsonStr = new TextDecoder().decode(bytes.get_data());
+                        let data = JSON.parse(jsonStr);
+                        let quake = data.Infogempa?.gempa;
+                        if (!quake) return;
 
-                    let quakeId = quake.Tanggal + quake.Jam;
-                    if (manual || quakeId !== this._lastQuakeId) {
-                        this._lastQuakeId = quakeId;
+                        let quakeId = quake.Tanggal + quake.Jam;
+                        if (manual || quakeId !== this._lastQuakeId) {
+                            this._lastQuakeId = quakeId;
 
-                        let message = `Magnitude: ${quake.Magnitude} SR\n` +
-                                      `Depth: ${quake.Kedalaman}\n` +
-                                      `Location: ${quake.Dirasakan}`;
-                        Main.notify('BMKG Earthquake Alert', message);
+                            let message =
+                                `Magnitude: ${quake.Magnitude} SR\n` +
+                                `Depth: ${quake.Kedalaman}\n` +
+                                `Location: ${quake.Dirasakan}`;
+                            Main.notify('BMKG Earthquake Alert', message);
 
-                        this._label.text = `M ${quake.Magnitude} SR`;
+                            this._label.text = `M ${quake.Magnitude} SR`;
 
-                        // play selected alert sound
-                        let soundName = this._soundList[this._currentSound];
-                        GLib.spawn_command_line_async(`canberra-gtk-play -i ${soundName}`);
+                            // === Play selected alert sound from theme ===
+                            let soundName = this._soundList[this._currentSound];
+                            let player = global.display.get_sound_player();
+                            player.play_from_theme(soundName, 'Earthquake Alert', null);
 
-                        // flash effect
-                        this._startFlashing();
+                            // flash effect
+                            this._startFlashing();
+                        }
+                    } catch (e) {
+                        logError(e);
                     }
-                } catch (e) {
-                    logError(e);
                 }
-            });
+            );
         } catch (e) {
             logError(e);
         }

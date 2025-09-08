@@ -4,5 +4,5 @@
   "description": "BMKG Earthquake alarm with notif & sound",
   "version": 1,
   "shell-version": ["45", "46"],
-  "url": ""
+  "url": "https://github.com/skakmat02/ealarm-asek.rf.gd"
 }
